@@ -14,7 +14,7 @@ namespace SharpUtilities.Options;
 /// Writable implementation of IOptionsMonitor.
 /// </summary>
 /// <typeparam name="TOptions">Options model.</typeparam>
-public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
+public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
 {
     private const string _baseFile = "appsettings.json";
 
@@ -24,6 +24,11 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
     private readonly string _appsettingsPhysicalPath;
     private readonly JsonDocumentOptions _jsonDocumentOptions;
     private readonly JsonWriterOptions _jsonWriterOptions;
+
+    #region Log
+    [LoggerMessage(0, LogLevel.Warning, "Couldn't write the settings. File path: {AppsettingsPhysicalPath}.")]
+    partial void LogWriteError(string appsettingsPhysicalPath, Exception exception);
+    #endregion
 
     /// <summary>
     /// Constructor.
@@ -36,13 +41,13 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
     /// <param name="configurationSection">Configuration section.</param>
     /// <param name="logger">Logger.</param>
     public WritableOptionsMonitor(
-        in IOptionsFactory<TOptions> factory,
-        in IEnumerable<IOptionsChangeTokenSource<TOptions>> sources,
-        in IOptionsMonitorCache<TOptions> cache,
-        in IHostEnvironment hostEnvironment,
-        in IConfigurationRoot configuration,
-        in IConfigurationSection configurationSection,
-        in ILogger<TOptions> logger) : base(factory, sources, cache)
+        IOptionsFactory<TOptions> factory,
+        IEnumerable<IOptionsChangeTokenSource<TOptions>> sources,
+        IOptionsMonitorCache<TOptions> cache,
+        IHostEnvironment hostEnvironment,
+        IConfigurationRoot configuration,
+        IConfigurationSection configurationSection,
+        ILogger<TOptions> logger) : base(factory, sources, cache)
     {
         Guard.IsNotNull(factory, nameof(factory));
         Guard.IsNotNull(sources, nameof(sources));
@@ -75,7 +80,7 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
     /// <param name="baseFile">The base settings file, not the environment specific one.</param>
     /// <param name="hostEnvironment">Host environment</param>
     /// <returns>Environment specific physical path of the settings file if exists, otherwise the physical path of the base settings file.</returns>
-    private static string GetAppSettingsPhysicalPath(in string baseFile, in IHostEnvironment hostEnvironment)
+    private static string GetAppSettingsPhysicalPath(string baseFile, IHostEnvironment hostEnvironment)
     {
         string environmentSpecificFileName = $"{Path.GetFileNameWithoutExtension(baseFile)}.{hostEnvironment.EnvironmentName}{Path.GetExtension(baseFile)}";
         string appsettingsPhysicalPath = Path.Combine(hostEnvironment.ContentRootPath, environmentSpecificFileName);
@@ -112,9 +117,9 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
             WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
             utf8JsonWriter.Flush();
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError("Couldn't write the settings. File path: {AppsettingsPhysicalPath}. Exception: {Exception}", _appsettingsPhysicalPath, ex);
+            LogWriteError(_appsettingsPhysicalPath, exception);
             return false;
         }
 
@@ -143,9 +148,9 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
 
             await utf8JsonWriter.FlushAsync();
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError("Couldn't write the settings. File path: {AppsettingsPhysicalPath}. Exception: {Exception}", _appsettingsPhysicalPath, ex);
+            LogWriteError(_appsettingsPhysicalPath, exception);
             return false;
         }
 
