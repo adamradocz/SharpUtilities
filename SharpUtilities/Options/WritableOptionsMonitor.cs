@@ -153,7 +153,7 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
         return true;
     }
 
-    private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, in Utf8JsonWriter utf8JsonWriter, in JsonElement updatedOptionJsonElement)
+    private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, Utf8JsonWriter utf8JsonWriter, in JsonElement updatedOptionJsonElement)
     {
         utf8JsonWriter.WriteStartObject();
 
