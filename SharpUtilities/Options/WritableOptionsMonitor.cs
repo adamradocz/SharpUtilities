@@ -1,3 +1,4 @@
+using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ namespace SharpUtilities.Options;
 /// <typeparam name="TOptions">Options model.</typeparam>
 public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
 {
-    private const string BaseFile = "appsettings.json";
+    private const string _baseFile = "appsettings.json";
 
     private readonly IConfigurationRoot _configuration;
     private readonly IConfigurationSection _configurationSection;
@@ -43,31 +44,16 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
         in IConfigurationSection configurationSection,
         in ILogger<TOptions> logger) : base(factory, sources, cache)
     {
-        if (factory is null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
-
-        if (sources is null)
-        {
-            throw new ArgumentNullException(nameof(sources));
-        }
-
-        if (cache is null)
-        {
-            throw new ArgumentNullException(nameof(cache));
-        }
-
-        if (hostEnvironment is null)
-        {
-            throw new ArgumentNullException(nameof(hostEnvironment));
-        }
-
+        Guard.IsNotNull(factory, nameof(factory));
+        Guard.IsNotNull(sources, nameof(sources));
+        Guard.IsNotNull(cache, nameof(cache));
+        Guard.IsNotNull(hostEnvironment, nameof(hostEnvironment));
+        
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _configurationSection = configurationSection ?? throw new ArgumentNullException(nameof(configurationSection));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _appsettingsPhysicalPath = GetAppSettingsPhysicalPath(BaseFile, hostEnvironment);
+        _appsettingsPhysicalPath = GetAppSettingsPhysicalPath(_baseFile, hostEnvironment);
 
         _jsonDocumentOptions = new JsonDocumentOptions
         {
