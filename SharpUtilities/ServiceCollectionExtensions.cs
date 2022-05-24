@@ -9,9 +9,9 @@ namespace SharpUtilities;
 
 public static class ServiceCollectionExtensions
 {
-    public static void ConfigureWritable<TOptions>(this IServiceCollection services, IConfigurationSection section) where TOptions : class
+    public static IServiceCollection ConfigureWritable<TOptions>(this IServiceCollection services, IConfigurationSection section) where TOptions : class
     {
-        services.AddSingleton<IWritableOptionsMonitor<TOptions>>(provider =>
+        return services.AddSingleton<IWritableOptionsMonitor<TOptions>>(provider =>
         {
             var optionsFactory = provider.GetRequiredService<IOptionsFactory<TOptions>>();
             var optionsChangeTokenSources = provider.GetRequiredService<IEnumerable<IOptionsChangeTokenSource<TOptions>>>();
