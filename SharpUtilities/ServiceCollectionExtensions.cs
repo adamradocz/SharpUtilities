@@ -11,14 +11,14 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection ConfigureWritable<TOptions>(this IServiceCollection services, IConfigurationSection section) where TOptions : class
     {
-        return services.AddSingleton<IWritableOptionsMonitor<TOptions>>(provider =>
+        return services.AddSingleton<IWritableOptionsMonitor<TOptions>>(serviceProvider =>
         {
-            var optionsFactory = provider.GetRequiredService<IOptionsFactory<TOptions>>();
-            var optionsChangeTokenSources = provider.GetRequiredService<IEnumerable<IOptionsChangeTokenSource<TOptions>>>();
-            var optionsMonitorCache = provider.GetRequiredService<IOptionsMonitorCache<TOptions>>();
-            var hostEnvironment = provider.GetRequiredService<IHostEnvironment>();
-            var configurationRoot = (IConfigurationRoot)provider.GetRequiredService<IConfiguration>();
-            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var optionsFactory = serviceProvider.GetRequiredService<IOptionsFactory<TOptions>>();
+            var optionsChangeTokenSources = serviceProvider.GetRequiredService<IEnumerable<IOptionsChangeTokenSource<TOptions>>>();
+            var optionsMonitorCache = serviceProvider.GetRequiredService<IOptionsMonitorCache<TOptions>>();
+            var hostEnvironment = serviceProvider.GetRequiredService<IHostEnvironment>();
+            var configurationRoot = (IConfigurationRoot)serviceProvider.GetRequiredService<IConfiguration>();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger<TOptions>();
             return new WritableOptionsMonitor<TOptions>(optionsFactory, optionsChangeTokenSources, optionsMonitorCache, hostEnvironment, configurationRoot, section, logger);
         });
