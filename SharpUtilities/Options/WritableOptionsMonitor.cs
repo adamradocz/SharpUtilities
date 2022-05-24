@@ -49,9 +49,6 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         IConfigurationSection configurationSection,
         ILogger<TOptions> logger) : base(factory, sources, cache)
     {
-        Guard.IsNotNull(factory, nameof(factory));
-        Guard.IsNotNull(sources, nameof(sources));
-        Guard.IsNotNull(cache, nameof(cache));
         Guard.IsNotNull(hostEnvironment, nameof(hostEnvironment));
         
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
