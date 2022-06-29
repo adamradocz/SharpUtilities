@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using SharpUtilities.Options;
 using System.Globalization;
-using Xunit.Sdk;
 
 namespace SharpUtilities.Tests.Options;
 
@@ -20,8 +20,9 @@ public class WritableOptionsMonitorTests
             .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption))))
             .Build();
 
-        // Act
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
         var isUpdated = writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
@@ -50,11 +51,17 @@ public class WritableOptionsMonitorTests
                 configuration.Sources.Clear();
                 _ = configuration.AddInMemoryCollection();
             })
-            .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption))))
+            .ConfigureServices((hostBuilderContext, services) =>
+            {
+                _ = services.Configure<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)))
+                .ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)));
+            })
             .Build();
 
-        // Act
+        var optionsMonitor = host.Services.GetRequiredService<IOptionsMonitor<TestOption>>();
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
         var isUpdated = writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
@@ -74,17 +81,17 @@ public class WritableOptionsMonitorTests
 
         // Assert
         Assert.True(isUpdated);
-        Assert.True(writableOptionsMonitor.CurrentValue.TestBool);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestByte);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestShort);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestInt);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestLong);
-        Assert.Equal(2.2f, writableOptionsMonitor.CurrentValue.TestFloat);
-        Assert.Equal(2.2d, writableOptionsMonitor.CurrentValue.TestDouble);
-        Assert.Equal(2.2m, writableOptionsMonitor.CurrentValue.TestDecimal);
-        Assert.Equal("a", writableOptionsMonitor.CurrentValue.TestString);
-        Assert.Equal('a', writableOptionsMonitor.CurrentValue.TestChar);
-        Assert.Null(writableOptionsMonitor.CurrentValue.TestSubClass);
+        Assert.True(optionsMonitor.CurrentValue.TestBool);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestInt);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestLong);
+        Assert.Equal(2.2f, optionsMonitor.CurrentValue.TestFloat);
+        Assert.Equal(2.2d, optionsMonitor.CurrentValue.TestDouble);
+        Assert.Equal(2.2m, optionsMonitor.CurrentValue.TestDecimal);
+        Assert.Equal("a", optionsMonitor.CurrentValue.TestString);
+        Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
+        Assert.Null(optionsMonitor.CurrentValue.TestSubClass);
     }
 
     [Fact]
@@ -115,11 +122,17 @@ public class WritableOptionsMonitorTests
 
                 _ = configuration.AddInMemoryCollection(testOptions);
             })
-            .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption))))
+            .ConfigureServices((hostBuilderContext, services) =>
+            {
+                _ = services.Configure<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)))
+                .ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)));
+            })
             .Build();
 
-        // Act
+        var optionsMonitor = host.Services.GetRequiredService<IOptionsMonitor<TestOption>>();
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
         var isUpdated = writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
@@ -139,17 +152,17 @@ public class WritableOptionsMonitorTests
 
         // Assert
         Assert.True(isUpdated);
-        Assert.True(writableOptionsMonitor.CurrentValue.TestBool);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestByte);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestShort);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestInt);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestLong);
-        Assert.Equal(2.2f, writableOptionsMonitor.CurrentValue.TestFloat);
-        Assert.Equal(2.2d, writableOptionsMonitor.CurrentValue.TestDouble);
-        Assert.Equal(2.2m, writableOptionsMonitor.CurrentValue.TestDecimal);
-        Assert.Equal("a", writableOptionsMonitor.CurrentValue.TestString);
-        Assert.Equal('a', writableOptionsMonitor.CurrentValue.TestChar);
-        Assert.Null(writableOptionsMonitor.CurrentValue.TestSubClass);
+        Assert.True(optionsMonitor.CurrentValue.TestBool);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestInt);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestLong);
+        Assert.Equal(2.2f, optionsMonitor.CurrentValue.TestFloat);
+        Assert.Equal(2.2d, optionsMonitor.CurrentValue.TestDouble);
+        Assert.Equal(2.2m, optionsMonitor.CurrentValue.TestDecimal);
+        Assert.Equal("a", optionsMonitor.CurrentValue.TestString);
+        Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
+        Assert.Null(optionsMonitor.CurrentValue.TestSubClass);
     }
 
     [Fact]
@@ -162,11 +175,17 @@ public class WritableOptionsMonitorTests
                 configuration.Sources.Clear();
                 _ = configuration.AddInMemoryCollection();
             })
-            .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption))))
+            .ConfigureServices((hostBuilderContext, services) =>
+            {
+                _ = services.Configure<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)))
+                .ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)));
+            })
             .Build();
 
-        // Act
+        var optionsMonitor = host.Services.GetRequiredService<IOptionsMonitor<TestOption>>();
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
         var isUpdated = writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
@@ -199,27 +218,27 @@ public class WritableOptionsMonitorTests
 
         // Assert
         Assert.True(isUpdated);
-        Assert.True(writableOptionsMonitor.CurrentValue.TestBool);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestByte);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestShort);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestInt);
-        Assert.Equal(2, writableOptionsMonitor.CurrentValue.TestLong);
-        Assert.Equal(2.2f, writableOptionsMonitor.CurrentValue.TestFloat);
-        Assert.Equal(2.2d, writableOptionsMonitor.CurrentValue.TestDouble);
-        Assert.Equal(2.2m, writableOptionsMonitor.CurrentValue.TestDecimal);
-        Assert.Equal("a", writableOptionsMonitor.CurrentValue.TestString);
-        Assert.Equal('a', writableOptionsMonitor.CurrentValue.TestChar);
-        Assert.NotNull(writableOptionsMonitor.CurrentValue.TestSubClass);
+        Assert.True(optionsMonitor.CurrentValue.TestBool);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestInt);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestLong);
+        Assert.Equal(2.2f, optionsMonitor.CurrentValue.TestFloat);
+        Assert.Equal(2.2d, optionsMonitor.CurrentValue.TestDouble);
+        Assert.Equal(2.2m, optionsMonitor.CurrentValue.TestDecimal);
+        Assert.Equal("a", optionsMonitor.CurrentValue.TestString);
+        Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
+        Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass);
 
-        Assert.True(writableOptionsMonitor.CurrentValue.TestSubClass.TestBool);
-        Assert.Equal(3, writableOptionsMonitor.CurrentValue.TestSubClass.TestByte);
-        Assert.Equal(3, writableOptionsMonitor.CurrentValue.TestSubClass.TestShort);
-        Assert.Equal(3, writableOptionsMonitor.CurrentValue.TestSubClass.TestInt);
-        Assert.Equal(3, writableOptionsMonitor.CurrentValue.TestSubClass.TestLong);
-        Assert.Equal(3.3f, writableOptionsMonitor.CurrentValue.TestSubClass.TestFloat);
-        Assert.Equal(3.3d, writableOptionsMonitor.CurrentValue.TestSubClass.TestDouble);
-        Assert.Equal(3.3m, writableOptionsMonitor.CurrentValue.TestSubClass.TestDecimal);
-        Assert.Equal("b", writableOptionsMonitor.CurrentValue.TestSubClass.TestString);
-        Assert.Equal('b', writableOptionsMonitor.CurrentValue.TestSubClass.TestChar);
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestBool);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestByte);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestShort);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestInt);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestLong);
+        Assert.Equal(3.3f, optionsMonitor.CurrentValue.TestSubClass.TestFloat);
+        Assert.Equal(3.3d, optionsMonitor.CurrentValue.TestSubClass.TestDouble);
+        Assert.Equal(3.3m, optionsMonitor.CurrentValue.TestSubClass.TestDecimal);
+        Assert.Equal("b", optionsMonitor.CurrentValue.TestSubClass.TestString);
+        Assert.Equal('b', optionsMonitor.CurrentValue.TestSubClass.TestChar);
     }
 }
