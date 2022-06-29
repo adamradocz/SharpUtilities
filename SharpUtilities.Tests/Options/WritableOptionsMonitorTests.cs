@@ -12,6 +12,45 @@ public class WritableOptionsMonitorTests
     private const int _updateDelay = 100;
 
     [Fact]
+    public void JsonFilePhysicalPath_DefaultOptionUsed_ReturnsAppsettingsJsonFileName()
+    {
+        // Arrange
+        var host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(configuration => configuration.Sources.Clear())
+            .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption))))
+            .Build();
+
+        var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
+        var fileName = Path.GetFileName(writableOptionsMonitor.JsonFilePhysicalPath);
+
+        // Assert
+        Assert.Equal("appsettings.json", fileName);
+    }
+
+    [Fact]
+    public void JsonFilePhysicalPath_CustomOptionSet_ReturnsCustomFileName()
+    {
+        // Arrange
+        const string customFileName = "mycustomfile.json";
+
+        var host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(configuration => configuration.Sources.Clear())
+            .ConfigureServices((hostBuilderContext, services) => services.ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)),
+                options => options.JsonBaseFile = customFileName))
+            .Build();
+
+        var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
+        var fileName = Path.GetFileName(writableOptionsMonitor.JsonFilePhysicalPath);
+
+        // Assert
+        Assert.Equal(customFileName, fileName);
+    }
+
+    [Fact]
     public void Update_MemoryNoProviderAdded_NotUpdated()
     {
         // Arrange
@@ -230,7 +269,7 @@ public class WritableOptionsMonitorTests
         Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
         Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass);
 
-        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestBool);
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass!.TestBool);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestByte);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestShort);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestInt);
@@ -320,7 +359,7 @@ public class WritableOptionsMonitorTests
         Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
         Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass);
 
-        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestBool);
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass!.TestBool);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestByte);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestShort);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestInt);
@@ -332,7 +371,7 @@ public class WritableOptionsMonitorTests
         Assert.Equal('b', optionsMonitor.CurrentValue.TestSubClass.TestChar);
         Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass.TestSubClass);
 
-        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestBool);
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestSubClass!.TestBool);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestByte);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestShort);
         Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestInt);
