@@ -1,8 +1,10 @@
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Reflection;
 using System.Text.Json;
 
 /**
@@ -71,6 +73,69 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     }
 
     /// <summary>
+    /// Update the application settings file.
+    /// </summary>
+    /// <param name="applyChanges">Action to make the modification in the configuration section.</param>
+    /// <returns><c>true</c> if success, otherwise <c>false</c></returns>
+    public bool Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    {
+        bool? isUpdatedSuccessfully = null;
+        var optionObject = CurrentValue;
+        applyChanges(optionObject);
+        
+        if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
+        {
+            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateJsonConfiguration(optionObject));
+        }
+
+        if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
+        {
+            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateMemoryConfiguration(optionObject));
+        }
+
+        return isUpdatedSuccessfully ?? false;
+    }
+
+    /// <inheritdoc cref="Update(Action{TOptions})"/>
+    /// <returns><c>Task<true></c> if success, otherwise <c>Task<false></c></returns>
+    public async Task<bool> UpdateAsync(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    {
+        bool? isUpdatedSuccessfully = null;
+        var optionObject = CurrentValue;
+        applyChanges(optionObject);
+
+        if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
+        {
+            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, await UpdateJsonConfigurationAsync(optionObject));
+        }
+
+        if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
+        {
+            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateMemoryConfiguration(optionObject));
+        }
+
+        return isUpdatedSuccessfully ?? false;
+    }
+
+    private static bool EvaluateSuccess(bool? isUpdatedSuccessfully, bool currentReturnValue)
+    {
+        // The first evaluation.
+        if (isUpdatedSuccessfully is null)
+        {
+            return currentReturnValue;
+        }
+
+        // There was an unsuccessful update.
+        if (isUpdatedSuccessfully == false)
+        {
+            return false;
+        }
+
+        return currentReturnValue;
+    }
+
+    #region JSON Configuration
+    /// <summary>
     /// Get the physical path of the appsettings.json.
     /// If the appsettings.{Environment}.json exists, than it retuns that one.
     /// </summary>
@@ -90,12 +155,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         return appsettingsPhysicalPath;
     }
 
-    /// <summary>
-    /// Update the application settings file.
-    /// </summary>
-    /// <param name="applyChanges">Action to make the modification in the configuration section.</param>
-    /// <returns><c>true</c> if success, otherwise <c>false</c></returns>
-    public bool Update(Action<TOptions> applyChanges)
+    private bool UpdateJsonConfiguration(TOptions updatedOption)
     {
         ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(_appsettingsPhysicalPath);
 
@@ -103,9 +163,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
         appsettingsRootElement = appsettingsJsonDocument.RootElement;
 
-        var optionObject = CurrentValue;
-        applyChanges(optionObject);
-        var updatedOptionJsonElement = JsonSerializer.SerializeToElement<TOptions>(optionObject);
+        var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
         try
         {
@@ -124,17 +182,13 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         return true;
     }
 
-    /// <inheritdoc cref="Update(Action{TOptions})"/>
-    /// <returns><c>Task<true></c> if success, otherwise <c>Task<false></c></returns>
-    public async Task<bool> UpdateAsync(Action<TOptions> applyChanges)
+    private async Task<bool> UpdateJsonConfigurationAsync(TOptions updatedOption)
     {
         ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(_appsettingsPhysicalPath);
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
         var appsettingsRootElement = appsettingsJsonDocument.RootElement;
 
-        var optionObject = CurrentValue;
-        applyChanges(optionObject);
-        var updatedOptionJsonElement = JsonSerializer.SerializeToElement<TOptions>(optionObject);
+        var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
         try
         {
@@ -182,4 +236,49 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
         utf8JsonWriter.WriteEndObject();
     }
+    #endregion
+
+    #region Memory Configuration
+    private bool UpdateMemoryConfiguration(TOptions updatedOption)
+    {
+        if (_configuration.Providers.FirstOrDefault(configurationProvider => configurationProvider.GetType() == typeof(MemoryConfigurationProvider)) is not MemoryConfigurationProvider memoryConfigurationProvider)
+        {
+            return  false;
+        }
+
+        SetMemoryKeyValuePairs(memoryConfigurationProvider, updatedOption);
+
+        _configuration.Reload();
+        return true;
+    }
+
+    private void SetMemoryKeyValuePairs(MemoryConfigurationProvider memoryConfigurationProvider, object option, string optionKeyPrefix = "")
+    {
+        var optionObjectType = option.GetType();
+        var bindingFlags = BindingFlags.Public | BindingFlags.Instance;
+        var properties = optionObjectType.GetProperties(bindingFlags);
+        foreach (var property in properties)
+        {
+            var propertyValue = property.GetValue(option, null);
+            var optionKey = string.IsNullOrEmpty(optionKeyPrefix) ? $"{optionObjectType.Name}:{property.Name}" : $"{optionKeyPrefix}:{property.Name}";
+
+            if (propertyValue is null)
+            {
+                memoryConfigurationProvider.Set(optionKey, string.Empty);
+            }
+            else
+            {
+                var propertyType = propertyValue.GetType();
+                if (propertyType != typeof(string) && propertyType.IsClass)
+                {
+                    SetMemoryKeyValuePairs(memoryConfigurationProvider, propertyValue, optionKey);
+                }
+                else
+                {
+                    memoryConfigurationProvider.Set(optionKey, propertyValue.ToString());
+                }
+            }            
+        }
+    }
+    #endregion
 }
