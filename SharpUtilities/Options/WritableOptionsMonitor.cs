@@ -260,16 +260,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         foreach (var property in properties)
         {
             var propertyValue = property.GetValue(option, null);
-
-            string optionKey;
-            if (string.IsNullOrEmpty(optionKeyPrefix))
-            {
-                optionKey = $"{optionObjectType.Name}:{property.Name}";
-            }
-            else
-            {
-                optionKey = $"{optionKeyPrefix}:{property.Name}";
-            }
+            var optionKey = string.IsNullOrEmpty(optionKeyPrefix) ? $"{optionObjectType.Name}:{property.Name}" : $"{optionKeyPrefix}:{property.Name}";
 
             if (propertyValue is null)
             {
