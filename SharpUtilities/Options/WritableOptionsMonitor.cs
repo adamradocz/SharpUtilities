@@ -18,14 +18,14 @@ namespace SharpUtilities.Options;
 /// <typeparam name="TOptions">Options model.</typeparam>
 public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
 {
-    private const string _baseFile = "appsettings.json";
-
     private readonly IConfigurationRoot _configuration;
     private readonly IConfigurationSection _configurationSection;
     private readonly ILogger<TOptions> _logger;
-    private readonly string _appsettingsPhysicalPath;
     private readonly JsonDocumentOptions _jsonDocumentOptions;
     private readonly JsonWriterOptions _jsonWriterOptions;
+
+    /// <inheritdoc/>
+    public string JsonFilePhysicalPath { get; }
 
     #region Log
     [LoggerMessage(0, LogLevel.Warning, "Couldn't write the settings. File path: {AppsettingsPhysicalPath}.")]
@@ -46,18 +46,19 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         IOptionsFactory<TOptions> factory,
         IEnumerable<IOptionsChangeTokenSource<TOptions>> sources,
         IOptionsMonitorCache<TOptions> cache,
+        IOptions<WritableOptionsMonitorOption> options,
         IHostEnvironment hostEnvironment,
         IConfigurationRoot configuration,
         IConfigurationSection configurationSection,
         ILogger<TOptions> logger) : base(factory, sources, cache)
     {
         Guard.IsNotNull(hostEnvironment, nameof(hostEnvironment));
-        
+        Guard.IsNotNull(options, nameof(options));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _configurationSection = configurationSection ?? throw new ArgumentNullException(nameof(configurationSection));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _appsettingsPhysicalPath = GetAppSettingsPhysicalPath(_baseFile, hostEnvironment);
+        JsonFilePhysicalPath = GetAppSettingsPhysicalPath(options.Value.JsonBaseFile, hostEnvironment);
 
         _jsonDocumentOptions = new JsonDocumentOptions
         {
@@ -72,11 +73,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         };
     }
 
-    /// <summary>
-    /// Update the application settings file.
-    /// </summary>
-    /// <param name="applyChanges">Action to make the modification in the configuration section.</param>
-    /// <returns><c>true</c> if success, otherwise <c>false</c></returns>
+    /// <inheritdoc/>
     public bool Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
     {
         bool? isUpdatedSuccessfully = null;
@@ -96,8 +93,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         return isUpdatedSuccessfully ?? false;
     }
 
-    /// <inheritdoc cref="Update(Action{TOptions})"/>
-    /// <returns><c>Task<true></c> if success, otherwise <c>Task<false></c></returns>
+    /// <inheritdoc/>
     public async Task<bool> UpdateAsync(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
     {
         bool? isUpdatedSuccessfully = null;
@@ -144,8 +140,8 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     /// <returns>Environment specific physical path of the settings file if exists, otherwise the physical path of the base settings file.</returns>
     private static string GetAppSettingsPhysicalPath(string baseFile, IHostEnvironment hostEnvironment)
     {
-        string environmentSpecificFileName = $"{Path.GetFileNameWithoutExtension(baseFile)}.{hostEnvironment.EnvironmentName}{Path.GetExtension(baseFile)}";
-        string appsettingsPhysicalPath = Path.Combine(hostEnvironment.ContentRootPath, environmentSpecificFileName);
+        var environmentSpecificFileName = $"{Path.GetFileNameWithoutExtension(baseFile)}.{hostEnvironment.EnvironmentName}{Path.GetExtension(baseFile)}";
+        var appsettingsPhysicalPath = Path.Combine(hostEnvironment.ContentRootPath, environmentSpecificFileName);
 
         if (!File.Exists(appsettingsPhysicalPath))
         {
@@ -157,7 +153,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
     private bool UpdateJsonConfiguration(TOptions updatedOption)
     {
-        ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(_appsettingsPhysicalPath);
+        ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(JsonFilePhysicalPath);
 
         JsonElement appsettingsRootElement;
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
@@ -167,14 +163,14 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
         try
         {
-            using var fileStream = new FileStream(_appsettingsPhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
             WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
             utf8JsonWriter.Flush();
         }
         catch (Exception exception)
         {
-            LogWriteError(_appsettingsPhysicalPath, exception);
+            LogWriteError(JsonFilePhysicalPath, exception);
             return false;
         }
 
@@ -184,7 +180,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
     private async Task<bool> UpdateJsonConfigurationAsync(TOptions updatedOption)
     {
-        ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(_appsettingsPhysicalPath);
+        ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
         var appsettingsRootElement = appsettingsJsonDocument.RootElement;
 
@@ -192,7 +188,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
         try
         {
-            await using var fileStream = new FileStream(_appsettingsPhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
 
             WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
@@ -201,7 +197,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         }
         catch (Exception exception)
         {
-            LogWriteError(_appsettingsPhysicalPath, exception);
+            LogWriteError(JsonFilePhysicalPath, exception);
             return false;
         }
 
@@ -213,10 +209,10 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     {
         utf8JsonWriter.WriteStartObject();
 
-        bool propertyFound = false;
+        var propertyFound = false;
         foreach (var property in appsettingsRootElement.EnumerateObject())
         {
-            if (_configurationSection.Key.Equals(property.Name))
+            if (_configurationSection.Key.Equals(property.Name, StringComparison.Ordinal))
             {
                 propertyFound = true;
                 utf8JsonWriter.WritePropertyName(_configurationSection.Key);
