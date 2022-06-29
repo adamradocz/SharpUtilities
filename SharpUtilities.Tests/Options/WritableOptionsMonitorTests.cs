@@ -241,4 +241,107 @@ public class WritableOptionsMonitorTests
         Assert.Equal("b", optionsMonitor.CurrentValue.TestSubClass.TestString);
         Assert.Equal('b', optionsMonitor.CurrentValue.TestSubClass.TestChar);
     }
+
+    [Fact]
+    public async Task Update_MemorySubSubClassUpdated_UpdatedSuccessfully()
+    {
+        // Arrange
+        var host = Host.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(configuration =>
+            {
+                configuration.Sources.Clear();
+                _ = configuration.AddInMemoryCollection();
+            })
+            .ConfigureServices((hostBuilderContext, services) =>
+            {
+                _ = services.Configure<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)))
+                .ConfigureWritable<TestOption>(hostBuilderContext.Configuration.GetSection(nameof(TestOption)));
+            })
+            .Build();
+
+        var optionsMonitor = host.Services.GetRequiredService<IOptionsMonitor<TestOption>>();
+        var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
+
+        // Act
+        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        {
+            newTestOption.TestBool = true;
+            newTestOption.TestByte = 1;
+            newTestOption.TestShort = 1;
+            newTestOption.TestInt = 1;
+            newTestOption.TestLong = 1;
+            newTestOption.TestFloat = 1.1f;
+            newTestOption.TestDouble = 1.1d;
+            newTestOption.TestDecimal = 1.1m;
+            newTestOption.TestString = "a";
+            newTestOption.TestChar = 'a';
+            newTestOption.TestSubClass = new()
+            {
+                TestBool = true,
+                TestByte = 2,
+                TestShort = 2,
+                TestInt = 2,
+                TestLong = 2,
+                TestFloat = 2.2f,
+                TestDouble = 2.2d,
+                TestDecimal = 2.2m,
+                TestString = "b",
+                TestChar = 'b',
+                TestSubClass = new()
+                {
+                    TestBool = true,
+                    TestByte = 3,
+                    TestShort = 3,
+                    TestInt = 3,
+                    TestLong = 3,
+                    TestFloat = 3.3f,
+                    TestDouble = 3.3d,
+                    TestDecimal = 3.3m,
+                    TestString = "c",
+                    TestChar = 'c'
+                }
+        };
+        }, SharpUtilities.Options.ConfigurationProvider.Memory);
+
+        // Wait for the update thread to catch up.
+        await Task.Delay(TimeSpan.FromMilliseconds(_updateDelay));
+
+        // Assert
+        Assert.True(isUpdated);
+        Assert.True(optionsMonitor.CurrentValue.TestBool);
+        Assert.Equal(1, optionsMonitor.CurrentValue.TestByte);
+        Assert.Equal(1, optionsMonitor.CurrentValue.TestShort);
+        Assert.Equal(1, optionsMonitor.CurrentValue.TestInt);
+        Assert.Equal(1, optionsMonitor.CurrentValue.TestLong);
+        Assert.Equal(1.1f, optionsMonitor.CurrentValue.TestFloat);
+        Assert.Equal(1.1d, optionsMonitor.CurrentValue.TestDouble);
+        Assert.Equal(1.1m, optionsMonitor.CurrentValue.TestDecimal);
+        Assert.Equal("a", optionsMonitor.CurrentValue.TestString);
+        Assert.Equal('a', optionsMonitor.CurrentValue.TestChar);
+        Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass);
+
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestBool);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestByte);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestShort);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestInt);
+        Assert.Equal(2, optionsMonitor.CurrentValue.TestSubClass.TestLong);
+        Assert.Equal(2.2f, optionsMonitor.CurrentValue.TestSubClass.TestFloat);
+        Assert.Equal(2.2d, optionsMonitor.CurrentValue.TestSubClass.TestDouble);
+        Assert.Equal(2.2m, optionsMonitor.CurrentValue.TestSubClass.TestDecimal);
+        Assert.Equal("b", optionsMonitor.CurrentValue.TestSubClass.TestString);
+        Assert.Equal('b', optionsMonitor.CurrentValue.TestSubClass.TestChar);
+        Assert.NotNull(optionsMonitor.CurrentValue.TestSubClass.TestSubClass);
+
+        Assert.True(optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestBool);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestByte);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestShort);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestInt);
+        Assert.Equal(3, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestLong);
+        Assert.Equal(3.3f, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestFloat);
+        Assert.Equal(3.3d, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestDouble);
+        Assert.Equal(3.3m, optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestDecimal);
+        Assert.Equal("c", optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestString);
+        Assert.Equal('c', optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestChar);
+        Assert.Null(optionsMonitor.CurrentValue.TestSubClass.TestSubClass.TestSubClass);
+    }
 }

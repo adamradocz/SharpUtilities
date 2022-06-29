@@ -246,13 +246,13 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
             return  false;
         }
 
-        SetKeyValuePairs(memoryConfigurationProvider, updatedOption);
+        SetMemoryKeyValuePairs(memoryConfigurationProvider, updatedOption);
 
         _configuration.Reload();
         return true;
     }
 
-    private void SetKeyValuePairs(MemoryConfigurationProvider memoryConfigurationProvider, object option, string optionKeyPrefix = "")
+    private void SetMemoryKeyValuePairs(MemoryConfigurationProvider memoryConfigurationProvider, object option, string optionKeyPrefix = "")
     {
         var optionObjectType = option.GetType();
         var bindingFlags = BindingFlags.Public | BindingFlags.Instance;
@@ -271,7 +271,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
                 var propertyType = propertyValue.GetType();
                 if (propertyType != typeof(string) && propertyType.IsClass)
                 {
-                    SetKeyValuePairs(memoryConfigurationProvider, propertyValue, optionKey);
+                    SetMemoryKeyValuePairs(memoryConfigurationProvider, propertyValue, optionKey);
                 }
                 else
                 {
