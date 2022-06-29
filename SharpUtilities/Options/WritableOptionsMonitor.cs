@@ -246,25 +246,48 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
             return  false;
         }
 
-        var optionObjectType = updatedOption.GetType();
+        SetKeyValuePairs(memoryConfigurationProvider, updatedOption);
+
+        _configuration.Reload();
+        return true;
+    }
+
+    private void SetKeyValuePairs(MemoryConfigurationProvider memoryConfigurationProvider, object option, string optionKeyPrefix = "")
+    {
+        var optionObjectType = option.GetType();
         var bindingFlags = BindingFlags.Public | BindingFlags.Instance;
         var properties = optionObjectType.GetProperties(bindingFlags);
         foreach (var property in properties)
         {
-            var propertyValue = property.GetValue(updatedOption, null);
-            var optionKey = $"{optionObjectType.Name}:{property.Name}";
+            var propertyValue = property.GetValue(option, null);
+
+            string optionKey;
+            if (string.IsNullOrEmpty(optionKeyPrefix))
+            {
+                optionKey = $"{optionObjectType.Name}:{property.Name}";
+            }
+            else
+            {
+                optionKey = $"{optionKeyPrefix}:{property.Name}";
+            }
+
             if (propertyValue is null)
             {
                 memoryConfigurationProvider.Set(optionKey, string.Empty);
             }
             else
             {
-                memoryConfigurationProvider.Set(optionKey, propertyValue.ToString());
-            }
+                var propertyType = propertyValue.GetType();
+                if (propertyType != typeof(string) && propertyType.IsClass)
+                {
+                    SetKeyValuePairs(memoryConfigurationProvider, propertyValue, optionKey);
+                }
+                else
+                {
+                    memoryConfigurationProvider.Set(optionKey, propertyValue.ToString());
+                }
+            }            
         }
-        
-        _configuration.Reload();
-        return true;
     }
     #endregion
 }
