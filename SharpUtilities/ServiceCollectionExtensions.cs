@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SharpUtilities.Factories;
 using SharpUtilities.Options;
 
 namespace SharpUtilities;
@@ -28,5 +30,13 @@ public static class ServiceCollectionExtensions
                 var logger = loggerFactory.CreateLogger<TOptions>();
                 return new WritableOptionsMonitor<TOptions>(optionsFactory, optionsChangeTokenSources, optionsMonitorCache, options, hostEnvironment, configurationRoot, section, logger);
             });
+    }
+
+    public static IServiceCollection AddGenericServices(this IServiceCollection services)
+    {
+        services.TryAddSingleton(typeof(IFactory<>), typeof(Factory<>));
+        services.TryAddTransient(typeof(ILazyFactory<>), typeof(LazyFactory<>));
+
+        return services;
     }
 }
