@@ -6,6 +6,8 @@ public class LazyFactory<T> : ILazyFactory<T> where T : notnull
 {
     private readonly Lazy<T> _lazy;
 
+    public T Value => _lazy.Value;
+
     public LazyFactory(IServiceProvider serviceProvider)
     {
         if (serviceProvider is null)
@@ -15,6 +17,4 @@ public class LazyFactory<T> : ILazyFactory<T> where T : notnull
 
         _lazy = new Lazy<T>(() => serviceProvider.GetRequiredService<T>());
     }
-
-    public T Value => _lazy.Value;
 }
