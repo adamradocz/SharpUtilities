@@ -1,10 +1,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
-
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace SharpUtilities.ObservableCollections;
 
@@ -103,7 +100,6 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
         PropertyChanged(this, new PropertyChangedEventArgs("Values"));
     }
 
-#if NETCOREAPP2_0_OR_GREATER
     /// <inheritdoc cref="Dictionary{TKey, TValue}.TryAdd(TKey, TValue)"/>
     public bool TryAdd(TKey key, TValue value)
     {
@@ -120,17 +116,6 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
 
         return true;
     }
-#else
-    public bool TryAdd(TKey key, TValue value)
-    {
-        if (!_dictionary.ContainsKey(key))
-        {
-            Add(key, value);
-            return true;
-        }
-        return false;
-    }
-#endif
 
     /// <inheritdoc cref="IDictionary.Clear()"/>
     public void Clear()
@@ -162,12 +147,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
         return false;
     }
 
-#if NETCOREAPP3_0_OR_GREATER
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _dictionary.TryGetValue(key, out value);
-#else
-    /// <inheritdoc cref="IDictionary.TryGetValue(TKey, out TValue)"/>
-    public bool TryGetValue(TKey key, out TValue value) => _dictionary.TryGetValue(key, out value);
-#endif
     #endregion
 
     #region ICollection<KeyValuePair<TKey,TValue>> Members

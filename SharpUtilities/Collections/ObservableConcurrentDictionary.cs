@@ -2,10 +2,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.ComponentModel;
-
-#if NETCOREAPP3_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace SharpUtilities.ObservableCollections;
 
@@ -165,12 +162,7 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
     /// <inheritdoc cref="IDictionary.Contains(object)"/>
     public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
 
-#if NETCOREAPP3_0_OR_GREATER
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _dictionary.TryGetValue(key, out value);
-#else
-    /// <inheritdoc cref="IDictionary.TryGetValue(TKey, out TValue)"/>
-    public bool TryGetValue(TKey key, out TValue value) => _dictionary.TryGetValue(key, out value);
-#endif
     #endregion
 
     #region ICollection<KeyValuePair<TKey,TValue>> Members
