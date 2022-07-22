@@ -12,7 +12,7 @@ namespace SharpUtilities.ObservableCollections;
 /// </summary>
 /// <typeparam name="TKey">Specifies the type of the keys in this collection.</typeparam>
 /// <typeparam name="TValue">Specifies the type of the values in this collection.</typeparam>
-public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged
+public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged where TKey : notnull
 {
     readonly IDictionary<TKey, TValue> _dictionary;
 
@@ -50,9 +50,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
             {
                 _dictionary[key] = value;
 
-                CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,
-                    new KeyValuePair<TKey, TValue>(key, value),
-                    new KeyValuePair<TKey, TValue>(key, existing)));
+                CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, new KeyValuePair<TKey, TValue>(key, value), new KeyValuePair<TKey, TValue>(key, existing)));
                 PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
             }
             else
@@ -93,8 +91,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     {
         _dictionary.Add(key, value);
 
-        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
-            new KeyValuePair<TKey, TValue>(key, value)));
+        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
@@ -108,8 +105,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
             return false;
         }
 
-        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
-                new KeyValuePair<TKey, TValue>(key, value)));
+        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));

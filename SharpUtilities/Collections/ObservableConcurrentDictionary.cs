@@ -9,11 +9,11 @@ namespace SharpUtilities.ObservableCollections;
 // Based on: https://gist.github.com/kzu/cfe3cb6e4fe3efea6d24
 
 /// <summary>
-	/// Provides a dictionary for use with data binding.
-	/// </summary>
-	/// <typeparam name="TKey">Specifies the type of the keys in this collection.</typeparam>
-	/// <typeparam name="TValue">Specifies the type of the values in this collection.</typeparam>
-public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged
+/// Provides a dictionary for use with data binding.
+/// </summary>
+/// <typeparam name="TKey">Specifies the type of the keys in this collection.</typeparam>
+/// <typeparam name="TValue">Specifies the type of the values in this collection.</typeparam>
+public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INotifyCollectionChanged, INotifyPropertyChanged where TKey : notnull
 {
     private readonly ConcurrentDictionary<TKey, TValue> _dictionary;
 
@@ -51,9 +51,7 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
             {
                 _dictionary[key] = value;
 
-                CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,
-                    new KeyValuePair<TKey, TValue>(key, value),
-                    new KeyValuePair<TKey, TValue>(key, existing)));
+                CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, new KeyValuePair<TKey, TValue>(key, value), new KeyValuePair<TKey, TValue>(key, existing)));
                 PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
             }
             else
@@ -97,8 +95,7 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
             return false;
         }
 
-        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
-            new KeyValuePair<TKey, TValue>(key, value)));
+        CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TValue>(key, value)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
         PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
@@ -114,7 +111,12 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
             throw new ArgumentNullException(nameof(key));
         }
 
-        if (!_dictionary.TryGetValue(key, out var value) && value.Equals(comparisonValue))
+        if (!_dictionary.TryGetValue(key, out var value))
+        {
+            return false;
+        }
+
+        if (value!.Equals(comparisonValue))
         {
             return false;
         }
@@ -124,7 +126,7 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
     }
 
     /// <inheritdoc cref="ConcurrentDictionary{TKey, TValue}.TryRemove(TKey, out TValue)"/>
-    public bool TryRemove(TKey key, out TValue value)
+    public bool TryRemove(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         if (!_dictionary.TryRemove(key, out value))
         {
