@@ -54,7 +54,7 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
                 CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,
                     new KeyValuePair<TKey, TValue>(key, value),
                     new KeyValuePair<TKey, TValue>(key, existing)));
-                PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+                PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
             }
             else
             {
@@ -99,9 +99,9 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
 
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
             new KeyValuePair<TKey, TValue>(key, value)));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
 
         return true;
     }
@@ -133,9 +133,9 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
 
         // We specify the change as Reset, because the Remove action was throwing invalid index exception.
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
 
         return true;
     }
@@ -145,9 +145,9 @@ public class ObservableConcurrentDictionary<TKey, TValue> : IDictionary<TKey, TV
     {
         _dictionary.Clear();
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
     }
     #endregion
 

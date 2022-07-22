@@ -53,7 +53,7 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
                 CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,
                     new KeyValuePair<TKey, TValue>(key, value),
                     new KeyValuePair<TKey, TValue>(key, existing)));
-                PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+                PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
             }
             else
             {
@@ -95,9 +95,9 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
 
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
             new KeyValuePair<TKey, TValue>(key, value)));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
     }
 
     /// <inheritdoc cref="Dictionary{TKey, TValue}.TryAdd(TKey, TValue)"/>
@@ -110,9 +110,9 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
 
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add,
                 new KeyValuePair<TKey, TValue>(key, value)));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
 
         return true;
     }
@@ -122,9 +122,9 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
     {
         _dictionary.Clear();
         CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-        PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+        PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
     }
 
     /// <inheritdoc cref="IDictionary.Contains(object)"/>
@@ -137,9 +137,9 @@ public class ObservableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, INo
         {
             // We specify the change as Reset, because the Remove action was throwing invalid index exception.
             CollectionChanged(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-            PropertyChanged(this, new PropertyChangedEventArgs("Count"));
-            PropertyChanged(this, new PropertyChangedEventArgs("Keys"));
-            PropertyChanged(this, new PropertyChangedEventArgs("Values"));
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(Count)));
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(Keys)));
+            PropertyChanged(this, new PropertyChangedEventArgs(nameof(Values)));
 
             return true;
         }
