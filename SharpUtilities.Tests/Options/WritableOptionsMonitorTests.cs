@@ -62,7 +62,7 @@ public class WritableOptionsMonitorTests
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
 
         // Act
-        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        void act() => writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
             newTestOption.TestByte = 2;
@@ -77,7 +77,8 @@ public class WritableOptionsMonitorTests
         }, SharpUtilities.Options.ConfigurationProvider.Memory);
 
         // Assert
-        Assert.False(isUpdated);
+        var caughtException = Assert.Throws<InvalidOperationException>(act);
+        Assert.Equal("Sequence contains no matching element", caughtException.Message);
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public class WritableOptionsMonitorTests
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
 
         // Act
-        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
             newTestOption.TestByte = 2;
@@ -119,7 +120,6 @@ public class WritableOptionsMonitorTests
         await Task.Delay(TimeSpan.FromMilliseconds(_updateDelay));
 
         // Assert
-        Assert.True(isUpdated);
         Assert.True(optionsMonitor.CurrentValue.TestBool);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
@@ -172,7 +172,7 @@ public class WritableOptionsMonitorTests
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
 
         // Act
-        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
             newTestOption.TestByte = 2;
@@ -190,7 +190,6 @@ public class WritableOptionsMonitorTests
         await Task.Delay(TimeSpan.FromMilliseconds(_updateDelay));
 
         // Assert
-        Assert.True(isUpdated);
         Assert.True(optionsMonitor.CurrentValue.TestBool);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
@@ -225,7 +224,7 @@ public class WritableOptionsMonitorTests
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
 
         // Act
-        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
             newTestOption.TestByte = 2;
@@ -256,7 +255,6 @@ public class WritableOptionsMonitorTests
         await Task.Delay(TimeSpan.FromMilliseconds(_updateDelay));
 
         // Assert
-        Assert.True(isUpdated);
         Assert.True(optionsMonitor.CurrentValue.TestBool);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestByte);
         Assert.Equal(2, optionsMonitor.CurrentValue.TestShort);
@@ -302,7 +300,7 @@ public class WritableOptionsMonitorTests
         var writableOptionsMonitor = host.Services.GetRequiredService<IWritableOptionsMonitor<TestOption>>();
 
         // Act
-        var isUpdated = writableOptionsMonitor.Update(newTestOption =>
+        writableOptionsMonitor.Update(newTestOption =>
         {
             newTestOption.TestBool = true;
             newTestOption.TestByte = 1;
@@ -346,7 +344,6 @@ public class WritableOptionsMonitorTests
         await Task.Delay(TimeSpan.FromMilliseconds(_updateDelay));
 
         // Assert
-        Assert.True(isUpdated);
         Assert.True(optionsMonitor.CurrentValue.TestBool);
         Assert.Equal(1, optionsMonitor.CurrentValue.TestByte);
         Assert.Equal(1, optionsMonitor.CurrentValue.TestShort);

@@ -1,8 +1,6 @@
-using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Text.Json;
@@ -20,17 +18,19 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 {
     private readonly IConfigurationRoot _configuration;
     private readonly IConfigurationSection _configurationSection;
-    private readonly ILogger<TOptions> _logger;
-    private readonly JsonDocumentOptions _jsonDocumentOptions;
-    private readonly JsonWriterOptions _jsonWriterOptions;
+    private readonly JsonDocumentOptions _jsonDocumentOptions = new()
+    {
+        AllowTrailingCommas = true,
+        CommentHandling = JsonCommentHandling.Skip
+    };
+    private readonly JsonWriterOptions _jsonWriterOptions = new()
+    {
+        Indented = true,
+        SkipValidation = false
+    };
 
     /// <inheritdoc/>
     public string JsonFilePhysicalPath { get; }
-
-    #region Log
-    [LoggerMessage(0, LogLevel.Warning, "Couldn't write the settings. File path: {AppsettingsPhysicalPath}.")]
-    partial void LogWriteError(string appsettingsPhysicalPath, Exception exception);
-    #endregion
 
     /// <summary>
     /// Constructor.
@@ -41,7 +41,6 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     /// <param name="hostEnvironment">Hosting environment.</param>
     /// <param name="configuration">IConfiguration root.</param>
     /// <param name="configurationSection">Configuration section.</param>
-    /// <param name="logger">Logger.</param>
     public WritableOptionsMonitor(
         IOptionsFactory<TOptions> factory,
         IEnumerable<IOptionsChangeTokenSource<TOptions>> sources,
@@ -49,85 +48,48 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         IOptions<WritableOptionsMonitorOption> options,
         IHostEnvironment hostEnvironment,
         IConfigurationRoot configuration,
-        IConfigurationSection configurationSection,
-        ILogger<TOptions> logger) : base(factory, sources, cache)
+        IConfigurationSection configurationSection) : base(factory, sources, cache)
     {
-        Guard.IsNotNull(hostEnvironment, nameof(hostEnvironment));
-        Guard.IsNotNull(options, nameof(options));
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(options);
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _configurationSection = configurationSection ?? throw new ArgumentNullException(nameof(configurationSection));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         JsonFilePhysicalPath = GetAppSettingsPhysicalPath(options.Value.JsonBaseFile, hostEnvironment);
-
-        _jsonDocumentOptions = new JsonDocumentOptions
-        {
-            AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip
-        };
-
-        _jsonWriterOptions = new JsonWriterOptions
-        {
-            Indented = true,
-            SkipValidation = false
-        };
     }
 
     /// <inheritdoc/>
-    public bool Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    public void Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
     {
-        bool? isUpdatedSuccessfully = null;
         var optionObject = CurrentValue;
         applyChanges(optionObject);
         
         if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
         {
-            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateJsonConfiguration(optionObject));
+            UpdateJsonConfiguration(optionObject);
         }
 
         if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
         {
-            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateMemoryConfiguration(optionObject));
+            UpdateMemoryConfiguration(optionObject);
         }
-
-        return isUpdatedSuccessfully ?? false;
     }
 
     /// <inheritdoc/>
-    public async Task<bool> UpdateAsync(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    public async Task UpdateAsync(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
     {
-        bool? isUpdatedSuccessfully = null;
         var optionObject = CurrentValue;
         applyChanges(optionObject);
 
         if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
         {
-            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, await UpdateJsonConfigurationAsync(optionObject));
+            await UpdateJsonConfigurationAsync(optionObject);
         }
 
         if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
         {
-            isUpdatedSuccessfully = EvaluateSuccess(isUpdatedSuccessfully, UpdateMemoryConfiguration(optionObject));
+            UpdateMemoryConfiguration(optionObject);
         }
-
-        return isUpdatedSuccessfully ?? false;
-    }
-
-    private static bool EvaluateSuccess(bool? isUpdatedSuccessfully, bool currentReturnValue)
-    {
-        // The first evaluation.
-        if (isUpdatedSuccessfully is null)
-        {
-            return currentReturnValue;
-        }
-
-        // There was an unsuccessful update.
-        if (isUpdatedSuccessfully == false)
-        {
-            return false;
-        }
-
-        return currentReturnValue;
     }
 
     #region JSON Configuration
@@ -151,7 +113,7 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
         return appsettingsPhysicalPath;
     }
 
-    private bool UpdateJsonConfiguration(TOptions updatedOption)
+    private void UpdateJsonConfiguration(TOptions updatedOption)
     {
         ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(JsonFilePhysicalPath);
 
@@ -161,24 +123,15 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
         var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
-        try
-        {
-            using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
-            using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
-            WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
-            utf8JsonWriter.Flush();
-        }
-        catch (Exception exception)
-        {
-            LogWriteError(JsonFilePhysicalPath, exception);
-            return false;
-        }
+        using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+        using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
+        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+        utf8JsonWriter.Flush();
 
         _configuration.Reload();
-        return true;
     }
 
-    private async Task<bool> UpdateJsonConfigurationAsync(TOptions updatedOption)
+    private async Task UpdateJsonConfigurationAsync(TOptions updatedOption)
     {
         ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
@@ -186,23 +139,12 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
 
         var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
-        try
-        {
-            await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
-            await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
-
-            WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
-
-            await utf8JsonWriter.FlushAsync();
-        }
-        catch (Exception exception)
-        {
-            LogWriteError(JsonFilePhysicalPath, exception);
-            return false;
-        }
+        await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+        await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
+        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+        await utf8JsonWriter.FlushAsync();        
 
         _configuration.Reload();
-        return true;
     }
 
     private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, Utf8JsonWriter utf8JsonWriter, in JsonElement updatedOptionJsonElement)
@@ -235,17 +177,11 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     #endregion
 
     #region Memory Configuration
-    private bool UpdateMemoryConfiguration(TOptions updatedOption)
+    private void UpdateMemoryConfiguration(TOptions updatedOption)
     {
-        if (_configuration.Providers.FirstOrDefault(configurationProvider => configurationProvider.GetType() == typeof(MemoryConfigurationProvider)) is not MemoryConfigurationProvider memoryConfigurationProvider)
-        {
-            return  false;
-        }
-
+        var memoryConfigurationProvider = (MemoryConfigurationProvider)_configuration.Providers.First(configurationProvider => configurationProvider.GetType() == typeof(MemoryConfigurationProvider));
         SetMemoryKeyValuePairs(memoryConfigurationProvider, updatedOption);
-
         _configuration.Reload();
-        return true;
     }
 
     private void SetMemoryKeyValuePairs(MemoryConfigurationProvider memoryConfigurationProvider, object option, string optionKeyPrefix = "")

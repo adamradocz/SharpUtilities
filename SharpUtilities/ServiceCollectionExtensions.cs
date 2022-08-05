@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SharpUtilities.Factories;
 using SharpUtilities.Options;
@@ -28,9 +27,7 @@ public static class ServiceCollectionExtensions
                 var options = serviceProvider.GetRequiredService<IOptions<WritableOptionsMonitorOption>>();
                 var hostEnvironment = serviceProvider.GetRequiredService<IHostEnvironment>();
                 var configurationRoot = (IConfigurationRoot)serviceProvider.GetRequiredService<IConfiguration>();
-                var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                var logger = loggerFactory.CreateLogger<TOptions>();
-                return new WritableOptionsMonitor<TOptions>(optionsFactory, optionsChangeTokenSources, optionsMonitorCache, options, hostEnvironment, configurationRoot, section, logger);
+                return new WritableOptionsMonitor<TOptions>(optionsFactory, optionsChangeTokenSources, optionsMonitorCache, options, hostEnvironment, configurationRoot, section);
             });
     }
 
