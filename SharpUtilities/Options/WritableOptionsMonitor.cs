@@ -14,7 +14,7 @@ namespace SharpUtilities.Options;
 /// Writable implementation of IOptionsMonitor.
 /// </summary>
 /// <typeparam name="TOptions">Options model.</typeparam>
-public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
+public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWritableOptionsMonitor<TOptions> where TOptions : class
 {
     private readonly IConfigurationRoot _configuration;
     private readonly IConfigurationSection _configurationSection;
@@ -117,14 +117,12 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     {
         ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(JsonFilePhysicalPath);
 
-        using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
-        var appsettingsRootElement = appsettingsJsonDocument.RootElement;
-        var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
+        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, appsettingsMemory);
 
         using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
 
-        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+        WriteAppsSettingsJson(appsettingsRootElement, updatedOptionJsonElement, utf8JsonWriter);
 
         utf8JsonWriter.Flush();
         _configuration.Reload();
@@ -134,27 +132,34 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     {
         ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
 
-        using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
-        var appsettingsRootElement = appsettingsJsonDocument.RootElement;
-        var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
+        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, appsettingsMemory);
 
         await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
 
-        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+        WriteAppsSettingsJson(appsettingsRootElement, updatedOptionJsonElement, utf8JsonWriter);
 
         await utf8JsonWriter.FlushAsync();
         _configuration.Reload();
     }
 
-    private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, Utf8JsonWriter utf8JsonWriter, in JsonElement updatedOptionJsonElement)
+    private (JsonElement appsettingsRootElement, JsonElement updatedOptionJsonElement) GetJsonElements(TOptions updatedOption, in ReadOnlyMemory<byte> appsettingsMemory)
+    {
+        var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
+        var appsettingsRootElement = appsettingsJsonDocument.RootElement;
+        var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
+
+        return (appsettingsRootElement, updatedOptionJsonElement);
+    }
+
+    private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, in JsonElement updatedOptionJsonElement, Utf8JsonWriter utf8JsonWriter)
     {
         utf8JsonWriter.WriteStartObject();
 
         var propertyFound = false;
         foreach (var property in appsettingsRootElement.EnumerateObject())
         {
-            if (_configurationSection.Key.Equals(property.Name, StringComparison.Ordinal))
+            if (!propertyFound && property.NameEquals(_configurationSection.Key))
             {
                 propertyFound = true;
                 utf8JsonWriter.WritePropertyName(_configurationSection.Key);
