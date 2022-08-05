@@ -51,7 +51,7 @@ public class WritableOptionsMonitorTests
     }
 
     [Fact]
-    public void Update_MemoryNoProviderAdded_NotUpdated()
+    public void Update_MemoryNoProviderAdded_ThrowsException()
     {
         // Arrange
         var host = Host.CreateDefaultBuilder()
