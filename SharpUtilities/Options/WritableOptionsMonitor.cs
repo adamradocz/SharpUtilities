@@ -2,7 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 /**
@@ -115,11 +117,12 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
 
     private void UpdateJsonConfiguration(TOptions updatedOption)
     {
-        ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(JsonFilePhysicalPath);
+        ReadOnlyMemory<byte> jsonFileAsBytes = File.ReadAllBytes(JsonFilePhysicalPath);
 
-        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, appsettingsMemory);
+        var isBom = HandleUtf8Bom(ref jsonFileAsBytes);
+        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, jsonFileAsBytes);
 
-        using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+        using var fileStream = CreateFileStream(isBom);
         using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
 
         WriteAppsSettingsJson(appsettingsRootElement, updatedOptionJsonElement, utf8JsonWriter);
@@ -130,11 +133,12 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
 
     private async Task UpdateJsonConfigurationAsync(TOptions updatedOption)
     {
-        ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
+        ReadOnlyMemory<byte> jsonFileAsBytes = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
 
-        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, appsettingsMemory);
+        var isBom = HandleUtf8Bom(ref jsonFileAsBytes);
+        (var appsettingsRootElement, var updatedOptionJsonElement) = GetJsonElements(updatedOption, jsonFileAsBytes);
 
-        await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+        await using var fileStream = CreateFileStream(isBom);
         await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
 
         WriteAppsSettingsJson(appsettingsRootElement, updatedOptionJsonElement, utf8JsonWriter);
@@ -143,13 +147,35 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
         _configuration.Reload();
     }
 
-    private (JsonElement appsettingsRootElement, JsonElement updatedOptionJsonElement) GetJsonElements(TOptions updatedOption, in ReadOnlyMemory<byte> appsettingsMemory)
+    private static bool HandleUtf8Bom(ref ReadOnlyMemory<byte> jsonFileAsBytes)
     {
-        var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
+        if (Encoding.UTF8.Preamble.Length > 0 && jsonFileAsBytes.Span.StartsWith(Encoding.UTF8.Preamble))
+        {
+            jsonFileAsBytes = jsonFileAsBytes[Encoding.UTF8.Preamble.Length..];
+            return true;
+        }
+
+        return false;
+    }
+
+    private (JsonElement appsettingsRootElement, JsonElement updatedOptionJsonElement) GetJsonElements(TOptions updatedOption, in ReadOnlyMemory<byte> jsonFileAsBytes)
+    {
+        var appsettingsJsonDocument = JsonDocument.Parse(jsonFileAsBytes, _jsonDocumentOptions);
         var appsettingsRootElement = appsettingsJsonDocument.RootElement;
         var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
         return (appsettingsRootElement, updatedOptionJsonElement);
+    }
+
+    private FileStream CreateFileStream(bool isBom)
+    {
+        var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+        if (isBom)
+        {
+            fileStream.Write(Encoding.UTF8.Preamble);
+        }
+
+        return fileStream;
     }
 
     private void WriteAppsSettingsJson(in JsonElement appsettingsRootElement, in JsonElement updatedOptionJsonElement, Utf8JsonWriter utf8JsonWriter)
