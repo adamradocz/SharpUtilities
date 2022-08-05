@@ -117,33 +117,33 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     {
         ReadOnlyMemory<byte> appsettingsMemory = File.ReadAllBytes(JsonFilePhysicalPath);
 
-        JsonElement appsettingsRootElement;
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
-        appsettingsRootElement = appsettingsJsonDocument.RootElement;
-
+        var appsettingsRootElement = appsettingsJsonDocument.RootElement;
         var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
         using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
-        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
-        utf8JsonWriter.Flush();
 
+        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+
+        utf8JsonWriter.Flush();
         _configuration.Reload();
     }
 
     private async Task UpdateJsonConfigurationAsync(TOptions updatedOption)
     {
         ReadOnlyMemory<byte> appsettingsMemory = await File.ReadAllBytesAsync(JsonFilePhysicalPath);
+
         using var appsettingsJsonDocument = JsonDocument.Parse(appsettingsMemory, _jsonDocumentOptions);
         var appsettingsRootElement = appsettingsJsonDocument.RootElement;
-
         var updatedOptionJsonElement = JsonSerializer.SerializeToElement(updatedOption);
 
         await using var fileStream = new FileStream(JsonFilePhysicalPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         await using var utf8JsonWriter = new Utf8JsonWriter(fileStream, options: _jsonWriterOptions);
-        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
-        await utf8JsonWriter.FlushAsync();        
 
+        WriteAppsSettingsJson(appsettingsRootElement, utf8JsonWriter, updatedOptionJsonElement);
+
+        await utf8JsonWriter.FlushAsync();
         _configuration.Reload();
     }
 
@@ -177,6 +177,11 @@ public partial class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>
     #endregion
 
     #region Memory Configuration
+    /// <summary></summary>
+    /// <param name="updatedOption"></param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if no <see cref="MemoryConfigurationProvider"/> is added.
+    /// </exception>
     private void UpdateMemoryConfiguration(TOptions updatedOption)
     {
         var memoryConfigurationProvider = (MemoryConfigurationProvider)_configuration.Providers.First(configurationProvider => configurationProvider.GetType() == typeof(MemoryConfigurationProvider));
