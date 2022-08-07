@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 
 namespace SharpUtilities.Options;
 
-public interface IWritableOptionsMonitor<out TOptions> : IOptionsMonitor<TOptions> where TOptions : class
+public interface IWritableOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> where TOptions : class
 {
     /// <summary>
     /// The file path of the JSON file what will be updated by <see cref="Update(Action{TOptions}, ConfigurationProvider)"/>.
