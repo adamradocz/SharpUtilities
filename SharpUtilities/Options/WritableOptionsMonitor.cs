@@ -60,19 +60,39 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
     }
 
     /// <inheritdoc/>
-    public void Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    public void Update(TOptions newOption, ConfigurationProvider providerFlags)
     {
-        var optionObject = CurrentValue;
-        applyChanges(optionObject);
-        
         if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
         {
-            UpdateJsonConfiguration(optionObject);
+            UpdateJsonConfiguration(newOption);
         }
 
         if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
         {
-            UpdateMemoryConfiguration(optionObject);
+            UpdateMemoryConfiguration(newOption);
+        }
+    }
+
+    /// <inheritdoc/>
+    public void Update(Action<TOptions> applyChanges, ConfigurationProvider providerFlags)
+    {
+        var optionObject = CurrentValue;
+        applyChanges(optionObject);
+
+        Update(optionObject, providerFlags);
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateAsync(TOptions newOption, ConfigurationProvider providerFlags)
+    {
+        if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
+        {
+            await UpdateJsonConfigurationAsync(newOption);
+        }
+
+        if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
+        {
+            UpdateMemoryConfiguration(newOption);
         }
     }
 
@@ -82,15 +102,7 @@ public class WritableOptionsMonitor<TOptions> : OptionsMonitor<TOptions>, IWrita
         var optionObject = CurrentValue;
         applyChanges(optionObject);
 
-        if ((providerFlags & ConfigurationProvider.Json) == ConfigurationProvider.Json)
-        {
-            await UpdateJsonConfigurationAsync(optionObject);
-        }
-
-        if ((providerFlags & ConfigurationProvider.Memory) == ConfigurationProvider.Memory)
-        {
-            UpdateMemoryConfiguration(optionObject);
-        }
+        await UpdateAsync(optionObject, providerFlags);
     }
 
     #region JSON Configuration
